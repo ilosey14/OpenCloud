@@ -16,6 +16,9 @@ Common::validateRequest($_POST, [ 'name', 'tokens' ]);
 // get acl tokens
 $result = get_acl($_POST['name']);
 
+if ($result && !delete_acl($_POST['name']))
+	Common::return(500);
+
 if (!$result ||
 	!($acl_tokens = $result['tokens'] ?? []) ||
 	!is_array($acl_tokens))
@@ -51,9 +54,16 @@ session_regenerate_id(true);
 
 $_SESSION = [ 'tokens' => [] ];
 
-// session is valid if all tokens were matched
-// and the login lifetime hasn't expired
+// session is valid if all tokens were matched...
 if (count($acl_tokens) === 0) {
+	// ...and the login lifetime hasn't expired
+	if (time() <= $login_expired)
+		$authorized = 200;
+	else {
+		$authorized = 410;
+		$acl_count = 0;
+	}
+
 	// create access tokens
 	for ($i = 0; $i < $acl_count; $i++) {
 		$key = Common::randomToken(8);
@@ -69,12 +79,6 @@ if (count($acl_tokens) === 0) {
 		Common::setCookie($key, $value, $session_lifetime);
 	}
 
-	// remove valid acl entry
-	if ($result)
-		delete_acl($_POST['name']);
-
-	// set flag
-	$authorized = (time() <= $login_expired) ? 200 : 410;
 }
 
 // return
