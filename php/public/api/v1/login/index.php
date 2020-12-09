@@ -55,7 +55,7 @@ session_regenerate_id(true);
 $_SESSION = [ 'tokens' => [] ];
 
 // session is valid if all tokens were matched...
-if (count($acl_tokens) === 0) {
+if ($acl_count > 0 && count($acl_tokens) === 0) {
 	// ...and the login lifetime hasn't expired
 	if (time() <= $login_expired)
 		$authorized = 200;
